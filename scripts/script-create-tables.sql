@@ -8,7 +8,7 @@ create table if not exists clientes (
 -- Domínios
 create table if not exists parametros (
 	id uuid primary key default gen_random_uuid(),
-	client_id uuid not null references clientes(id),
+	cliente_id uuid not null references clientes(id) ON DELETE CASCADE,
 	tipo text not null, -- 'especie' | 'tipo_peca' | 'unidade_medida'
 	valor text not null
 );
@@ -16,7 +16,7 @@ create table if not exists parametros (
 -- Produtos
 create table if not exists produtos (
 	id uuid primary key default gen_random_uuid(),
-	client_id uuid not null references clientes(id),
+	cliente_id uuid not null references clientes(id) ON DELETE CASCADE,
 	especie text not null,
 	tipo_peca text not null,
 	dimensoes text,
@@ -28,17 +28,17 @@ create table if not exists produtos (
 -- Movimentações
 create table if not exists movimentacoes (
 	id uuid primary key default gen_random_uuid(),
-	client_id uuid not null references clientes(id),
-	produto_id uuid not null references produtos(id),
-	tipo_movimentacao text not null, -- 'Entrada' | 'Saída'
+	cliente_id uuid not null references clientes(id) ON DELETE CASCADE,
+	produto_id uuid not null references produtos(id) ON DELETE RESTRICT,
+	tipo_movimentacao text not null, -- 'entrada' | 'saida'
 	quantidade numeric not null,
 	responsavel text not null,
 	created_at timestamptz not null default now()
 );
 
-create index on parametros (client_id, tipo);
-create index on produtos (client_id);
-create index on movimentacoes (client_id, produto_id, created_at desc);,
+create index on parametros (cliente_id, tipo);
+create index on produtos (cliente_id);
+create index on movimentacoes (cliente_id, produto_id, created_at desc);
 
 -- pgcrypto para conseguir usar gen_random_uuid()
 create extension if not exists "pgcrypto";
