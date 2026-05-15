@@ -60,8 +60,22 @@ streamlit run app.py
 
 1. Faça push do repositório para o GitHub.
 2. No https://share.streamlit.io, conecte sua conta GitHub e crie um novo app apontando para este repo e branch.
-3. Nas configurações do app (Secrets), adicione `SUPABASE_URL` e `SUPABASE_KEY` como segredos.
-4. Configure o comando de execução (padrão) `streamlit run app.py` se necessário.
+3. Em `Main file path`, use `app.py`.
+4. Em `Advanced settings` -> `Secrets`, adicione:
+
+```toml
+SUPABASE_URL = "https://SEU-PROJETO.supabase.co"
+SUPABASE_KEY = "SUA_CHAVE_DA_DATA_API"
+APP_PASSWORD = "SUA_SENHA_DO_APP"
+```
+
+5. Clique em `Deploy`.
+
+### Plano gratuito (custo zero)
+
+- Use o `Streamlit Community Cloud` (gratuito).
+- O app pode entrar em modo de hibernação por inatividade e voltar no primeiro acesso.
+- Evite processamentos pesados para manter boa experiência no plano free.
 
 ## Segurança
 

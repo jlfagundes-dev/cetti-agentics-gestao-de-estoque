@@ -7,9 +7,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _read_secret(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value:
+        return value
+
+    try:
+        import streamlit as st
+
+        secret_value = st.secrets.get(name)
+        if secret_value:
+            return str(secret_value)
+    except Exception:
+        return None
+
+    return None
+
+
 def get_supabase_config() -> tuple[str, str]:
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_KEY")
+    url = _read_secret("SUPABASE_URL")
+    key = _read_secret("SUPABASE_KEY")
     if not url or not key:
         raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set in environment")
     return url.rstrip("/"), key

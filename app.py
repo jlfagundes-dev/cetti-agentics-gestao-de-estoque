@@ -5,6 +5,21 @@ from supabase_client import get_supabase_config, rest_get, rest_patch, rest_post
 st.set_page_config(page_title="Cetti - Gestão de Estoque", layout="wide")
 
 
+def get_app_password() -> str | None:
+    pwd = os.environ.get("APP_PASSWORD")
+    if pwd:
+        return pwd
+
+    try:
+        secret_pwd = st.secrets.get("APP_PASSWORD")
+        if secret_pwd:
+            return str(secret_pwd)
+    except Exception:
+        return None
+
+    return None
+
+
 def get_clients():
     params = {
         "select": "id,nome_empresa,slug",
@@ -169,7 +184,7 @@ def main():
             else f"{clients_by_id[cid].get('nome_empresa')} ({clients_by_id[cid].get('slug')})",
         )
 
-        app_pwd = os.environ.get("APP_PASSWORD")
+        app_pwd = get_app_password()
         if st.button("Entrar"):
             if app_pwd and pwd != app_pwd:
                 st.error("Senha inválida")
