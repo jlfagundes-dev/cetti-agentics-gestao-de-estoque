@@ -96,3 +96,8 @@ FOR UPDATE
 USING (user_id = auth.uid());
 
 ---
+
+Referências reais do projeto
+![Tela do Supabase com uma referência visual do esquema do banco de dados do projeto, mostrando tabelas e relacionamentos para clientes, parâmetros, produtos e movimentações.](../img/image.png)
+
+[Script para criar as tabelas do projeto](../scripts/script-create-tables.sql)

@@ -66,4 +66,7 @@ create table if not exists products (
 
 ---
 
-Feito com carinho — se quiser, eu posso: executar testes locais, adicionar CI/CD, ou expandir o CRUD com autenticação.
+## Referências reais do projeto
+- [Script para criar as tabelas do projeto](scripts/script-create-tables.sql)
+    ![imagem de referência das tabelas criadas no supabase](img/image.png)
+
