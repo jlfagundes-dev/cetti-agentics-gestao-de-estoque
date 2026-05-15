@@ -1,21 +1,22 @@
-# Cetti - Gestão de Estoque (Streamlit + Supabase)
+# Cetti - Gestão de Estoque (Streamlit + Supabase Data API)
 
-Este repositório contém um exemplo mínimo de app Streamlit que usa Supabase (Postgres) para armazenar produtos.
+Este repositório contém um app Streamlit que usa exclusivamente a Data API do Supabase (REST em `/rest/v1`) para leitura e escrita dos dados.
 
 ## Arquivos principais
 - [app.py](app.py) - aplicação Streamlit
-- [supabase_client.py](supabase_client.py) - helper para criar o cliente Supabase
+- [supabase_client.py](supabase_client.py) - helper de chamadas REST para a Data API do Supabase
 - [requirements.txt](requirements.txt)
 
 ## Como rodar localmente
 
 1. Criar um projeto no Supabase (ver seção abaixo).
-2. Copiar `SUPABASE_URL` e `SUPABASE_KEY` (anon/public ou service role conforme necessidade).
+2. Copiar `SUPABASE_URL` e `SUPABASE_KEY` (chave com permissão para acesso via Data API).
 3. Exportar variáveis de ambiente localmente ou criar um arquivo `.env` com as chaves:
 
 ```
 SUPABASE_URL=https://xyz.supabase.co
 SUPABASE_KEY=eyJ....
+APP_PASSWORD=minha_senha_mvp
 ```
 
 4. Instalar dependências:
@@ -30,22 +31,30 @@ python -m pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Fluxo do app
+
+1. Login por senha (`APP_PASSWORD`).
+2. Seleção de cliente carregada da tabela `clientes`.
+3. Seleção de responsável com base nos últimos lançamentos da tabela `movimentacoes` (filtrados por `cliente_id`).
+4. Dashboard de produtos filtrado por `cliente_id`.
+5. Registro de movimentação atualizando `produtos.estoque_atual` e inserindo em `movimentacoes`.
+
 ## Configurar o Supabase (passos mínimos)
 
 1. Crie um novo projeto em https://app.supabase.com
-2. Abra SQL Editor e execute o SQL abaixo para criar a tabela `products`:
+2. Abra SQL Editor e execute o script de estrutura do projeto:
 
 ```sql
-create table if not exists products (
-  id serial primary key,
-  name text not null,
-  quantity integer not null default 0,
-  price numeric(10,2) default 0
-);
+-- scripts/script-create-tables.sql
 ```
 
-3. (Opcional) Ative Row Level Security e crie políticas adequadas. Para começar rápido, deixe RLS desabilitado.
-4. Obtenha `SUPABASE_URL` (Settings → API) e `SUPABASE_KEY` (Settings → API → Anon/Public key or Service Role).
+3. Execute o seed de exemplo (opcional):
+
+```sql
+-- scripts/script-seed-exemplo1.sql
+```
+
+4. Obtenha `SUPABASE_URL` e `SUPABASE_KEY` em Settings → API.
 
 ## Deploy no Streamlit Cloud
 
@@ -56,13 +65,14 @@ create table if not exists products (
 
 ## Segurança
 
-- Nunca coloque a `service_role` key em clientes públicos. Use-a apenas em backends seguros.
-- Para permitir que clientes façam updates diretos, crie políticas RLS específicas que limitem acessos.
+- Este MVP usa chave de API no backend do Streamlit para consumir a Data API.
+- Não exponha a chave em frontend público.
+- Se for evoluir para acesso direto do cliente final, revise autenticação e isolamento por tenant.
 
 ## Problemas comuns
 
 - Se a tabela não aparece, confira se você executou o SQL no projeto correto.
-- Em caso de erro 401/403, valide as chaves e o URL.
+- Em caso de erro 401/403, valide as chaves, permissões e o URL.
 
 ---
 

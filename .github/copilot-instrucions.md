@@ -12,51 +12,61 @@ Este documento serve como instrução de contexto para o desenvolvimento do MVP 
 - **Front-end:** Streamlit Cloud.
 - **Backend:** Supabase Edge Functions (utilizando a biblioteca `supabase-py`).
 - **Database** Supabase PostgresSQL com Data API habilitada com RLS
-- **Multi-tenancy:** Baseado em coluna `client_id` em todas as tabelas (Estratégia de Row-Level Security futura).
+- **Multi-tenancy:** Baseado em coluna `cliente_id` em todas as tabelas (Estratégia de Row-Level Security futura).
 - **Sessão/Auth:** Login único compartilhado por cliente. No início do app, o usuário deve selecionar seu nome (Responsável) em um dropdown. Este nome deve ser salvo no `st.session_state` e enviado em cada movimentação.
 
 ## 3. Modelo de Dados (Supabase/Postgres)
 
 Obs.: O Supabase PostgresSQL tem Data API para que pode ser usado direto no streamlit
 
-### Tabela: `clientes` (Tenants)
-- `id`: uuid (primary key)
-- `nome_empresa`: text
-- `slug`: text (ex: 'madeireira-norte')
+[Script para criar as tabelas do projeto](../scripts/script-create-tables.sql)
 
-### Tabela: `parametros` (Tabela de Domínio)
-- `id`: uuid (primary key)
-- `client_id`: uuid (foreign key)
-- `tipo`: text (ex: 'especie', 'tipo_peca', 'unidade_medida')
-- `valor`: text (ex: 'Eucalipto', 'Viga', 'm²')
+exemplo de request:
+import requests
 
-### Tabela: `produtos`
-- `id`: uuid (primary key)
-- `client_id`: uuid (foreign key)
-- `especie`: text
-- `tipo_peca`: text
-- `dimensoes`: text (aberto para digitação manual)
-- `unidade_medida`: text
-- `preco_unitario`: numeric
-- `estoque_atual`: numeric (campo denormalizado para performance no MVP)
+url = "https://krivbykcprcvlgamrfzy.supabase.co/rest/v1/produtos"
 
-### Tabela: `movimentacoes`
-- `id`: uuid (primary key)
-- `client_id`: uuid (foreign key)
-- `produto_id`: uuid (foreign key)
-- `tipo_movimentacao`: text (Entrada / Saída)
-- `quantidade`: numeric
-- `responsavel`: text (nome do funcionário vindo do session_state)
-- `created_at`: timestamp with time zone
+headers = {
+    "apikey": "ey...",
+    "Accept": "application/json"
+}
+
+params = {
+    "select": "*"
+}
+
+autorization = {
+    "bearear token": "ey..."
+}
+
+response = requests.get(url, headers=headers, params=params)
+
+print(response.status_code)
+print(response.json())
+
+exemplo de resposta:
+[
+    {
+        "id": "5561db35-346a-4932-a6d8-655d90e3ae0c",
+        "cliente_id": "b4440a38-c0d5-40c7-a0e2-8e1eaf7dcba4",
+        "especie": "Eucalipto",
+        "tipo_peca": "Tábua",
+        "dimensoes": "2x30x300",
+        "unidade_medida": "m²",
+        "preco_unitario": 120.50,
+        "estoque_atual": 10
+    }
+]
+
 
 ## 4. Instruções de UI/UX (Streamlit)
 - **Mobile First:** Use `st.columns` com moderação. Prefira widgets que ocupem a largura total.
 - **Entrada de Dados:** - Use `st.selectbox` para Espécie, Tipo e Unidade (buscando da tabela `parametros`).
     - Use `st.number_input` com `step=1.0` ou `0.01` dependendo da unidade.
-- **Filtros:** Sempre filtrar todas as queries por `client_id`.
+- **Filtros:** Sempre filtrar todas as queries por `cliente_id`.
 
 ## 5. Fluxo de Código Sugerido
-1. **Init:** Verificar se `client_id` e `responsavel` estão no `st.session_state`.
+1. **Init:** Verificar se `cliente_id` e `responsavel` estão no `st.session_state`.
 2. **Login:** Tela simples de senha para liberar o acesso ao tenant.
 3. **Seleção de Responsável:** Dropdown obrigatório antes de liberar o menu.
 4. **Dashboard:** Mostrar saldo atual (tabela `produtos`).
@@ -100,4 +110,3 @@ USING (user_id = auth.uid());
 Referências reais do projeto
 ![Tela do Supabase com uma referência visual do esquema do banco de dados do projeto, mostrando tabelas e relacionamentos para clientes, parâmetros, produtos e movimentações.](../img/image.png)
 
-[Script para criar as tabelas do projeto](../scripts/script-create-tables.sql)
