@@ -17,6 +17,8 @@ Para evitar inflação de tabelas desnecessárias, Clientes e Fornecedores compa
 - `nome_razao`: text (Nome do Cliente ou Fornecedor)
 - `tipo_entidade`: text ('cliente' ou 'fornecedor')
 - `documento`: text (CPF/CNPJ opcional)
+- `telefone`: text (opcional)
+- `email`: text (opcional)
 - `created_at`: timestamp with time zone
 
 ### Tabela: `movimentacoes` (Atualizada para a Fase 2)

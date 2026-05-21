@@ -1,5 +1,7 @@
+import html
 import os
 
+import pandas as pd
 import streamlit as st
 
 from supabase_client import get_supabase_config, rest_get, rest_patch, rest_post
@@ -89,11 +91,109 @@ def get_entidades(cliente_id: str, tipo_entidade: str) -> list[dict[str, object]
     return rest_get("entidades", params)
 
 
+def format_product_label(product: dict[str, object]) -> str:
+    parts = [
+        str(product.get("especie") or "Produto"),
+        str(product.get("tipo_peca") or ""),
+        str(product.get("dimensoes") or ""),
+        str(product.get("unidade_medida") or ""),
+    ]
+    return " - ".join(part for part in parts if part)
+
+
+def format_entidade_label(entidade: dict[str, object]) -> str:
+    parts = [str(entidade.get("nome_razao") or "Parceiro")]
+    if entidade.get("documento"):
+        parts.append(str(entidade.get("documento")))
+    return " - ".join(parts)
+
+
+def format_currency_brl(value: object) -> str:
+    try:
+        numeric_value = float(value or 0)
+    except (TypeError, ValueError):
+        numeric_value = 0.0
+
+    formatted = f"{numeric_value:,.2f}"
+    formatted = formatted.replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"R$ {formatted}"
+
+
+def dashboard_products_view(products: list[dict[str, object]]) -> list[dict[str, object]]:
+    visible_rows: list[dict[str, object]] = []
+    for product in products:
+        visible_rows.append(
+            {
+                "Espécie": product.get("especie"),
+                "Tipo de peça": product.get("tipo_peca"),
+                "Dimensões": product.get("dimensoes"),
+                "Unidade": product.get("unidade_medida"),
+                "Preço unitário": format_currency_brl(product.get("preco_unitario")),
+                "Estoque atual": product.get("estoque_atual"),
+            }
+        )
+    return visible_rows
+
+
+def parceiros_view(parceiros: list[dict[str, object]]) -> list[dict[str, object]]:
+    visible_rows: list[dict[str, object]] = []
+    for entidade in parceiros:
+        visible_rows.append(
+            {
+                "Nome / Razão Social": entidade.get("nome_razao"),
+                "Tipo": entidade.get("tipo_entidade"),
+                "Documento": entidade.get("documento"),
+                "Telefone": entidade.get("telefone"),
+                "Email": entidade.get("email"),
+            }
+        )
+    return visible_rows
+
+
+def render_left_aligned_table(rows: list[dict[str, object]]) -> None:
+    if not rows:
+        st.info("Nenhum item para exibir.")
+        return
+
+    def cell_text(value: object) -> str:
+        if value is None:
+            return ""
+        if pd.isna(value):
+            return ""
+        return str(value)
+
+    dataframe = pd.DataFrame(rows)
+    headers = list(dataframe.columns)
+    header_html = "".join(
+        f'<th style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid #ddd;">{html.escape(str(header))}</th>'
+        for header in headers
+    )
+    body_rows = []
+    for _, row in dataframe.iterrows():
+        cells = "".join(
+            f'<td style="text-align:left;padding:0.5rem 0.75rem;border-bottom:1px solid #f0f0f0;">{html.escape(cell_text(row[header]))}</td>'
+            for header in headers
+        )
+        body_rows.append(f"<tr>{cells}</tr>")
+
+    table_html = """
+    <div style="overflow-x:auto; width:100%;">
+      <table style="width:100%; border-collapse:collapse; text-align:left;">
+        <thead><tr>{header_html}</tr></thead>
+        <tbody>{body_rows}</tbody>
+      </table>
+    </div>
+    """.format(header_html=header_html, body_rows="".join(body_rows))
+    st.markdown(table_html, unsafe_allow_html=True)
+
+
 def create_entidade(
     cliente_id: str,
     nome_razao: str,
     tipo_entidade: str,
     documento: str,
+    telefone: str = "",
+    email: str = "",
 ) -> list[dict[str, object]]:
     if not cliente_id:
         return []
@@ -103,6 +203,8 @@ def create_entidade(
         "nome_razao": nome_razao.strip(),
         "tipo_entidade": tipo_entidade.strip(),
         "documento": documento.strip() or None,
+        "telefone": telefone.strip() or None,
+        "email": email.strip() or None,
     }
     return rest_post("entidades", payload)
 
@@ -169,7 +271,7 @@ def create_movimentacao(
         "responsavel": responsavel,
     }
     rest_post("movimentacoes", payload)
-    return {"ok": True}
+    return {"ok": True, "valor_monetario_total": valor_monetario_total}
 
 
 def logout() -> None:
@@ -260,6 +362,7 @@ def render_login() -> None:
             st.session_state.logged_in = True
             st.session_state.step = "responsavel"
             st.success("Login realizado")
+            st.rerun()
 
 
 def render_responsavel() -> None:
@@ -282,6 +385,7 @@ def render_responsavel() -> None:
             st.session_state.responsavel = responsavel
             st.session_state.step = "dashboard"
             st.success("Responsável definido")
+            st.rerun()
 
 
 def render_dashboard() -> None:
@@ -295,7 +399,7 @@ def render_dashboard() -> None:
         products = []
 
     if products:
-        st.table(products)
+        render_left_aligned_table(dashboard_products_view(products))
     else:
         st.info("Nenhum produto encontrado para o cliente selecionado.")
 
@@ -307,6 +411,8 @@ def render_parceiros() -> None:
         nome_razao = st.text_input("Nome / Razão Social")
         tipo_entidade = st.selectbox("Tipo de parceiro", options=["", "cliente", "fornecedor"])
         documento = st.text_input("CPF / CNPJ (opcional)")
+        telefone = st.text_input("Telefone (opcional)")
+        email = st.text_input("Email (opcional)")
         submitted = st.form_submit_button("Salvar parceiro")
 
     if submitted:
@@ -323,6 +429,8 @@ def render_parceiros() -> None:
                 nome_razao,
                 tipo_entidade,
                 documento,
+                telefone,
+                email,
             )
             if result:
                 st.success("Parceiro cadastrado com sucesso")
@@ -341,7 +449,7 @@ def render_parceiros() -> None:
         parceiros = []
 
     if parceiros:
-        st.table(parceiros)
+        render_left_aligned_table(parceiros_view(parceiros))
     else:
         st.info("Nenhum parceiro encontrado para o cliente selecionado.")
 
@@ -362,9 +470,7 @@ def render_movimentacao() -> None:
     entidade_tipo = "fornecedor" if tipo == "entrada" else "cliente"
     entidades = get_entidades(st.session_state.cliente_id, entidade_tipo)
     entidade_map = {
-        f"{entidade.get('nome_razao')}" + (
-            f" - {entidade.get('documento')}" if entidade.get("documento") else ""
-        ): entidade.get("id")
+        format_entidade_label(entidade): entidade.get("id")
         for entidade in entidades
         if entidade.get("id")
     }
@@ -374,7 +480,7 @@ def render_movimentacao() -> None:
     )
 
     product_map = {
-        f"{product.get('especie')} - {product.get('dimensoes')} - {str(product.get('id'))[:8]}": product
+        format_product_label(product): product
         for product in products
         if product.get("id")
     }
@@ -409,7 +515,8 @@ def render_movimentacao() -> None:
             if out.get("error"):
                 st.error(out.get("error"))
             else:
-                st.success("Movimentação registrada")
+                total_formatado = format_currency_brl(out.get("valor_monetario_total"))
+                st.success(f"Movimentação registrada. Total: {total_formatado}")
                 st.session_state.step = "dashboard"
         except Exception as ex:
             st.error(f"Erro ao salvar movimentação: {ex}")
