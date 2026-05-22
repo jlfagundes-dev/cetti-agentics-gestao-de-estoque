@@ -9,6 +9,34 @@ from supabase_client import get_supabase_config, rest_get, rest_patch, rest_post
 
 st.set_page_config(page_title="Cetti - Gestão de Estoque", layout="wide")
 
+# Injeção de CSS para ocultar os menus padrão do Streamlit (Fork, Perfil, Status)
+st.markdown(
+    """
+    <style>
+    /* Oculta o botão de Fork e o ícone do GitHub no topo */
+    .stAppToolbar, div[data-testid="stStatusWidget"], .stDeployButton, a[href*="github.com"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    
+    /* Oculta o menu de três pontinhos (...) no canto superior direito */
+    #MainMenu {
+        visibility: hidden !important;
+        display: none !important;
+    }
+    
+    /* Oculta o rodapé e as informações de perfil do GitHub no canto inferior direito */
+    footer {
+        visibility: hidden !important;
+        display: none !important;
+    }
+    div[data-testid="stDecoration"], div[data-testid="stCloudAppViewerHeader"] {
+        display: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 def get_app_password() -> str | None:
     pwd = os.environ.get("APP_PASSWORD")
